@@ -11,7 +11,7 @@ Opensource Alternative to PM2 Plus
 
 ##### QUICK START
 ```bash
-git clone https://github.com/suryamodulus/pm2-webui
+git clone https://github.com/mamamou/pm2-webui
 cd pm2-webui
 npm install
 cp env.example .env

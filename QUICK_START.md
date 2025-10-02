@@ -28,7 +28,7 @@ Each installation manages only that VM's PM2 processes.
 
 ```bash
 # On VM1 (Production)
-git clone https://github.com/suryamodulus/pm2-webui
+git clone https://github.com/mamamou/pm2-webui
 cd pm2-webui
 npm install
 cp env.example .env
@@ -39,7 +39,7 @@ npm start
 
 ```bash
 # On VM2 (Staging) - Same steps
-git clone https://github.com/suryamodulus/pm2-webui
+git clone https://github.com/mamamou/pm2-webui
 cd pm2-webui
 npm install
 cp env.example .env
@@ -242,7 +242,7 @@ Running:
 
 ## Questions?
 
-- GitHub Issues: https://github.com/suryamodulus/pm2-webui/issues
+- GitHub Issues: https://github.com/mamamou/pm2-webui/issues
 - PM2 Docs: https://pm2.keymetrics.io/
 
 ---

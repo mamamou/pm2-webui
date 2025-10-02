@@ -10,7 +10,7 @@ import https from 'https';
 import http from 'http';
 import serve from 'koa-static';
 import render from 'koa-ejs';
-import koaBody from 'koa-body';
+import { koaBody } from 'koa-body';
 import session from 'koa-session';
 import CSRF from 'koa-csrf';
 import Koa from 'koa';
