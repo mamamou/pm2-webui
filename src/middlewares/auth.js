@@ -12,7 +12,4 @@ const isAuthenticated = async (ctx, next) => {
     await next()
 }
 
-module.exports = {
-    isAuthenticated,
-    checkAuthentication,
-};
+export { isAuthenticated, checkAuthentication };

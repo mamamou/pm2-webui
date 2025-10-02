@@ -1,6 +1,6 @@
-const prompts = require('prompts');
-const config = require('../config')
-const { createAdminUser } = require('../services/admin.service')
+import prompts from 'prompts';
+import config from '../config/index.js';
+import { createAdminUser } from '../services/admin.service.js';
 
 const username_regex = /^(?=.{4,}$)[a-z0-9_]+$/
 const password_regex = /^(?=.*\d)(?=.*[!@#$%^&*])(?=.*[a-z])(?=.*[A-Z]).{8,}$/

@@ -1,4 +1,5 @@
-require('dotenv').config()
+import dotenv from 'dotenv';
+dotenv.config();
 
 const config = {
     HOST: process.env.HOST || '127.0.0.1',
@@ -9,10 +10,13 @@ const config = {
     APP_PASSWORD: process.env.APP_PASSWORD || null,
     SHOW_GIT_INFO: process.env.SHOW_GIT_INFO || false,
     SHOW_ENV_FILE: process.env.SHOW_ENV_FILE || false,
+    HTTPS_ENABLED: process.env.HTTPS_ENABLED === 'true',
+    HTTPS_KEY_PATH: process.env.HTTPS_KEY_PATH || null,
+    HTTPS_CERT_PATH: process.env.HTTPS_CERT_PATH || null,
     DEFAULTS: {
         LINES_PER_REQUEST: 50,
         BCRYPT_HASH_ROUNDS: 10,
     }
-}
+};
 
-module.exports = config;
+export default config;

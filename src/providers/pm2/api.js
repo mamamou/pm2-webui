@@ -1,5 +1,5 @@
-const pm2 = require('pm2');
-const { bytesToSize, timeSince } = require('./ux.helper')
+import pm2 from 'pm2';
+import { bytesToSize, timeSince } from './ux.helper.js';
 
 function listApps(){
     return new Promise((resolve, reject) => {
@@ -112,11 +112,5 @@ function restartApp(process){
     })
 }
 
-module.exports = {
-    listApps,
-    describeApp,
-    reloadApp,
-    stopApp,
-    restartApp
-}
+export { listApps, describeApp, reloadApp, stopApp, restartApp };
 

@@ -46,7 +46,4 @@ const timeSince = function(date) {
     return Math.floor(seconds) + ' seconds'
 }
 
-module.exports = {
-    bytesToSize,
-    timeSince
-}
+export { bytesToSize, timeSince };

@@ -1,9 +1,5 @@
-var crypto = require("crypto");
+import crypto from 'crypto';
 
-const generateRandomString  = (len = 20) => {
+export const generateRandomString = (len = 20) => {
     return crypto.randomBytes(len).toString('hex');
-}
-
-module.exports = {
-    generateRandomString
-}
+};

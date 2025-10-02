@@ -1,14 +1,25 @@
 #!/usr/bin/env node
 
-const config = require('./config')
-const { setEnvDataSync } = require('./utils/env.util')
-const { generateRandomString } = require('./utils/random.util')
-const path = require('path');
-const serve = require('koa-static');
-const render = require('koa-ejs');
-const koaBody = require('koa-body');
-const session = require('koa-session');
-const Koa = require('koa');
+import config from './config/index.js';
+import { setEnvDataSync } from './utils/env.util.js';
+import { generateRandomString } from './utils/random.util.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs-extra';
+import https from 'https';
+import http from 'http';
+import serve from 'koa-static';
+import render from 'koa-ejs';
+import koaBody from 'koa-body';
+import session from 'koa-session';
+import CSRF from 'koa-csrf';
+import Koa from 'koa';
+import logger from './middlewares/logger.js';
+import errorHandler from './middlewares/error-handler.js';
+import router from './routes/index.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Init Application
 
@@ -31,13 +42,31 @@ app.proxy = true;
 app.keys = [config.APP_SESSION_SECRET];
 
 // Middlewares
-app.use(session(app));
+// Request logging (first to log everything)
+app.use(logger);
+
+const sessionConfig = {
+    sameSite: 'strict', // CSRF protection via SameSite cookie
+    httpOnly: true,
+    secure: config.HTTPS_ENABLED, // Only send over HTTPS when enabled
+};
+app.use(session(sessionConfig, app));
 
 app.use(koaBody());
 
+// CSRF protection for state-changing operations
+app.use(new CSRF({
+    invalidTokenMessage: 'Invalid CSRF token',
+    invalidTokenStatusCode: 403,
+    excludedMethods: ['GET', 'HEAD', 'OPTIONS'],
+    disableQuery: false
+}));
+
 app.use(serve(path.join(__dirname, 'public')));
 
-const router = require("./routes");
+// Error handling middleware
+app.use(errorHandler);
+
 app.use(router.routes());
 
 render(app, {
@@ -48,6 +77,28 @@ render(app, {
     debug: false
 });
 
-app.listen(config.PORT, config.HOST, ()=>{
-    console.log(`Application started at http://${config.HOST}:${config.PORT}`)
-})
+// Start server with HTTPS or HTTP
+if (config.HTTPS_ENABLED) {
+    if (!config.HTTPS_KEY_PATH || !config.HTTPS_CERT_PATH) {
+        console.error('HTTPS is enabled but HTTPS_KEY_PATH or HTTPS_CERT_PATH is not set');
+        process.exit(1);
+    }
+
+    try {
+        const httpsOptions = {
+            key: fs.readFileSync(config.HTTPS_KEY_PATH),
+            cert: fs.readFileSync(config.HTTPS_CERT_PATH)
+        };
+
+        https.createServer(httpsOptions, app.callback()).listen(config.PORT, config.HOST, () => {
+            console.log(`Application started at https://${config.HOST}:${config.PORT}`);
+        });
+    } catch (err) {
+        console.error('Failed to start HTTPS server:', err.message);
+        process.exit(1);
+    }
+} else {
+    http.createServer(app.callback()).listen(config.PORT, config.HOST, () => {
+        console.log(`Application started at http://${config.HOST}:${config.PORT}`);
+    });
+}
