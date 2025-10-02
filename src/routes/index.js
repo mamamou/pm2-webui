@@ -24,7 +24,7 @@ router.get('/', async (ctx) => {
 })
 
 router.get('/login', loginRateLimiter, checkAuthentication, async (ctx) => {
-    return await ctx.render('auth/login', {layout : false, login: { username: '', password:'', error: null }, csrf: ctx.csrf})
+    return await ctx.render('auth/login', {layout : false, login: { username: '', password:'', error: null }, csrf: ctx.state._csrf})
 })
 
 router.post('/login', loginRateLimiter, checkAuthentication, async (ctx) => {
@@ -36,7 +36,7 @@ router.post('/login', loginRateLimiter, checkAuthentication, async (ctx) => {
         return ctx.redirect('/apps')
     }
     catch(err){
-        return await ctx.render('auth/login', {layout : false, login: { username, password, error: err.message }, csrf: ctx.csrf})
+        return await ctx.render('auth/login', {layout : false, login: { username, password, error: err.message }, csrf: ctx.state._csrf})
     }
 })
 
@@ -45,7 +45,7 @@ router.get('/apps', isAuthenticated, async (ctx) => {
         const apps = await listApps()
         return await ctx.render('apps/dashboard', {
             apps,
-            csrf: ctx.csrf
+            csrf: ctx.state._csrf
         });
     } catch (err) {
         console.error('Failed to list apps:', err);
@@ -88,7 +88,7 @@ router.get('/apps/:appName', isAuthenticated, async (ctx) => {
                 stdout,
                 stderr
             },
-            csrf: ctx.csrf
+            csrf: ctx.state._csrf
         });
     } catch (err) {
         console.error('Failed to fetch app details:', err);
