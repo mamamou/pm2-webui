@@ -162,6 +162,18 @@
                 STDERR</a>
             </li>
             <li class="nav-item ms-auto">
+              <button id="realtime-toggle" class="btn btn-sm btn-outline-primary" onclick="toggleRealtime()" title="Enable/Disable Realtime Logs">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-live-photo" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                  <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                  <circle cx="12" cy="12" r="1"></circle>
+                  <circle cx="12" cy="12" r="5"></circle>
+                  <path d="M15.9 20.11v0a9 9 0 0 1 -7.8 0v0"></path>
+                  <path d="M8.1 3.89v0a9 9 0 0 1 7.8 0v0"></path>
+                  <path d="M3.89 8.1v0a9 9 0 0 0 0 7.8v0"></path>
+                  <path d="M20.11 15.9v0a9 9 0 0 0 0 -7.8v0"></path>
+                </svg>
+                <span id="realtime-status">OFF</span>
+              </button>
               <button class="btn btn-icon shadow-none" style="border:none !important;" onclick="nextLogs()">
                 <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-arrow-big-top" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
                   <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
@@ -201,10 +213,14 @@
       </div>
       <div class="modal-body">
         <% if(app.env_file){ %>
-          <pre><code class="language-bash"><%= app.env_file %></code></pre>
+          <textarea id="env-editor" class="form-control" rows="15" style="font-family: monospace;"><%= app.env_file %></textarea>
+        <% } else { %>
+          <textarea id="env-editor" class="form-control" rows="15" style="font-family: monospace;" placeholder="# Add environment variables here&#10;# Example:&#10;# NODE_ENV=production&#10;# PORT=3000"></textarea>
         <% } %>
+        <div id="env-save-status" class="mt-2"></div>
       </div>
       <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="saveEnvFile()">Save Changes</button>
         <button type="button" class="btn ml-auto" data-bs-dismiss="modal">Close</button>
       </div>
     </div>
@@ -213,6 +229,37 @@
 
 <script src="/assets/js/prism.js"></script>
 <script>
+
+  async function saveEnvFile() {
+    const envContent = document.getElementById('env-editor').value;
+    const statusDiv = document.getElementById('env-save-status');
+
+    try {
+      statusDiv.innerHTML = '<div class="alert alert-info">Saving...</div>';
+
+      const response = await fetch(`/api/apps/<%= app.name %>/env`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': '<%= csrf %>'
+        },
+        body: JSON.stringify({ envContent })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        statusDiv.innerHTML = '<div class="alert alert-success">Environment file saved successfully!</div>';
+        setTimeout(() => {
+          statusDiv.innerHTML = '';
+        }, 3000);
+      } else {
+        statusDiv.innerHTML = `<div class="alert alert-danger">Error: ${data.message || 'Failed to save'}</div>`;
+      }
+    } catch (err) {
+      statusDiv.innerHTML = `<div class="alert alert-danger">Error: ${err.message}</div>`;
+    }
+  }
 
   function getActiveTabData(){
     const data = {
@@ -271,4 +318,79 @@
       }
     }
   }
+
+  // SSE Realtime logs
+  let eventSources = { stdout: null, stderr: null };
+  let realtimeEnabled = false;
+
+  function toggleRealtime() {
+    realtimeEnabled = !realtimeEnabled;
+    const toggleBtn = document.getElementById('realtime-toggle');
+    const statusSpan = document.getElementById('realtime-status');
+
+    if (realtimeEnabled) {
+      toggleBtn.classList.remove('btn-outline-primary');
+      toggleBtn.classList.add('btn-primary');
+      statusSpan.textContent = 'ON';
+      startRealtimeLogs();
+    } else {
+      toggleBtn.classList.remove('btn-primary');
+      toggleBtn.classList.add('btn-outline-primary');
+      statusSpan.textContent = 'OFF';
+      stopRealtimeLogs();
+    }
+  }
+
+  function startRealtimeLogs() {
+    const logTypes = ['stdout', 'stderr'];
+
+    logTypes.forEach(logType => {
+      if (eventSources[logType]) {
+        eventSources[logType].close();
+      }
+
+      const eventSource = new EventSource(`/api/apps/<%= app.name %>/logs/${logType}/stream`);
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.line) {
+            // Append new line to the log viewer
+            $(`#${logType} code`).append(data.line + '<br/>');
+
+            // Auto-scroll to bottom if user is near the bottom
+            const codeElement = $(`#${logType} code`)[0];
+            if (codeElement) {
+              const isNearBottom = codeElement.scrollHeight - codeElement.scrollTop - codeElement.clientHeight < 100;
+              if (isNearBottom) {
+                codeElement.scrollTop = codeElement.scrollHeight;
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Error parsing SSE data:', err);
+        }
+      };
+
+      eventSource.onerror = (err) => {
+        console.error(`SSE error for ${logType}:`, err);
+        eventSource.close();
+        eventSources[logType] = null;
+      };
+
+      eventSources[logType] = eventSource;
+    });
+  }
+
+  function stopRealtimeLogs() {
+    Object.keys(eventSources).forEach(logType => {
+      if (eventSources[logType]) {
+        eventSources[logType].close();
+        eventSources[logType] = null;
+      }
+    });
+  }
+
+  // Clean up on page unload
+  window.addEventListener('beforeunload', stopRealtimeLogs);
 </script>

@@ -54,4 +54,18 @@ const setEnvDataSync = (wd, envData) => {
     }
 }
 
-export { getEnvFileContent, getEnvDataSync, setEnvDataSync };
+const writeEnvFileContent = async (wd, content) => {
+    try {
+        // Validate directory path
+        const validatedDir = validateDirectoryPath(wd);
+        const envPath = path.join(validatedDir, '.env');
+
+        await fs.writeFile(envPath, content, 'utf-8');
+        return true;
+    } catch (err) {
+        console.error('Error writing env file:', err.message);
+        throw err;
+    }
+}
+
+export { getEnvFileContent, getEnvDataSync, setEnvDataSync, writeEnvFileContent };
